@@ -84,9 +84,12 @@ export default function Footer() {
 
       </div>
 
-      <div className="w-full px-4 md:px-10 lg:px-16 xl:px-24 mx-auto border-t border-white/20 pt-4">
-        <p className="text-center text-xs opacity-80">
+      <div className="w-full px-4 md:px-10 lg:px-16 xl:px-24 mx-auto border-t border-white/20 pt-4 flex flex-col md:flex-row justify-between items-center gap-2">
+        <p className="text-center md:text-left text-xs opacity-80">
           © 2026 All rights reserved. NexKart Retail Ltd.
+        </p>
+        <p className="text-center md:text-right text-xs opacity-80">
+          Designed and developed by <span className="font-semibold text-white">Debjit</span>
         </p>
       </div>
     </footer>
