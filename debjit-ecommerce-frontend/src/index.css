@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --color-primary-blue: #1565C0;
+  --color-primary-blue-dark: #0f4c93;
+  --color-accent-orange: #FF6F00;
+  --color-accent-orange-light: #ff8e33;
+  --color-bg-light: #F0F4FF;
+  --color-text-dark: #1A1A2E;
+  --color-border-light: #E0E0E0;
+}
+
+@layer base {
+  body {
+    @apply font-sans text-text-dark bg-white m-0 p-0 overflow-x-hidden;
+  }
+
+  /* Global cursor pointer for all clickable elements */
+  a,
+  button,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"],
+  input[type="checkbox"],
+  select,
+  label[for],
+  .cursor-pointer {
+    cursor: pointer;
+  }
+}
+
+/* Custom hide scrollbar for category bar */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Swiper brand carousel pagination dots */
+.brands-carousel-wrapper .swiper-pagination {
+  bottom: 0px !important;
+}
+
+.brands-carousel-wrapper .swiper-pagination-bullet {
+  width: 6px;
+  height: 6px;
+  background-color: #D1D5DB;
+  opacity: 1;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+}
+
+.brands-carousel-wrapper .swiper-pagination-bullet-active {
+  width: 24px;
+  border-radius: 4px;
+  background-color: #0A88FF;
+}
