@@ -1,83 +1,84 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Phone, ArrowLeft, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Mail,
+  ArrowLeft,
+  CheckCircle2,
+  XCircle,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import useAuthStore from "../store/authStore";
 
 const TIMER_SECONDS = 30;
 
-// Generate a random 6-digit OTP for demo purposes
-function generateOTP() {
-  // TODO: Uncomment for production
-  // return String(Math.floor(100000 + Math.random() * 900000));
-  return "111111"; // Hardcoded OTP for development
-}
-
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
+  const { requestPasswordResetOtp, verifyPasswordResetOtp, resetPassword, loading, error: storeError, clearError } = useAuthStore();
 
-  // Steps: 'enter' (email/mobile) -> 'verify' (OTP) -> 'reset' (new password)
-  const [step, setStep] = useState('enter');
-  
+  // Steps: 'enter' (email) -> 'verify' (OTP) -> 'reset' (new password)
+  const [step, setStep] = useState("enter");
+
   // State for 'enter' step
-  const [contact, setContact] = useState('');
-  const [contactType, setContactType] = useState(''); // 'email' or 'mobile'
-  const [error, setError] = useState('');
-  
+  const [email, setEmail] = useState("");
+  const [contactType, setContactType] = useState("email"); // always 'email'
+  const [error, setError] = useState("");
+
   // State for 'verify' step
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timer, setTimer] = useState(TIMER_SECONDS);
   const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef([]);
 
   // State for 'reset' step
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
 
   // Countdown timer for OTP
   useEffect(() => {
-    if (step !== 'verify' || canResend || resetSuccess) return;
+    if (step !== "verify" || canResend || resetSuccess) return;
     if (timer <= 0) {
       setCanResend(true);
       return;
     }
-    const interval = setInterval(() => setTimer(prev => prev - 1), 1000);
+    const interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
     return () => clearInterval(interval);
   }, [timer, step, canResend, resetSuccess]);
 
-  const detectContactType = (value) => {
-    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'email';
-    if (/^\d{10}$/.test(value.replace(/\D/g, ''))) return 'mobile';
-    return '';
+  const validateEmail = (value) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   };
 
   // --- Step 1: Request OTP ---
-  const handleRequestOtp = (e) => {
+  const handleRequestOtp = async (e) => {
     e.preventDefault();
-    const type = detectContactType(contact);
-    if (!type) {
-      setError('Please enter a valid email address or 10-digit mobile number.');
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address.");
       return;
     }
-    setContactType(type);
-    const newOtp = generateOTP();
-    setGeneratedOtp(newOtp);
-    setStep('verify');
-    setError('');
-    setTimer(TIMER_SECONDS);
-    setCanResend(false);
-    setOtp(['', '', '', '', '', '']);
-
-    // For demo: show OTP in console
-    console.log(`[Demo] Forgot Password OTP sent to ${contact}: ${newOtp}`);
+    clearError();
+    try {
+      await requestPasswordResetOtp(email);
+      setContactType("email");
+      setStep("verify");
+      setError("");
+      setTimer(TIMER_SECONDS);
+      setCanResend(false);
+      setOtp(["", "", "", "", "", ""]);
+      console.log(`Forgot Password OTP request sent to ${email}`);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Failed to send OTP. Please try again.");
+      console.error("OTP request error:", err);
+    }
   };
 
   // --- Step 2: Verify OTP ---
   const handleOtpChange = (index, value) => {
     if (!/^\d?$/.test(value)) return;
-    setError('');
+    setError("");
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
@@ -88,126 +89,158 @@ export default function ForgotPasswordPage() {
   };
 
   const handleOtpKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
 
   const handleOtpPaste = (e) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, 6);
     if (pasted.length === 6) {
-      const digits = pasted.split('');
+      const digits = pasted.split("");
       setOtp(digits);
       inputRefs.current[5]?.focus();
     }
   };
 
-  const handleVerify = () => {
-    const enteredOtp = otp.join('');
+  const handleVerify = async () => {
+    const enteredOtp = otp.join("");
     if (enteredOtp.length < 6) {
-      setError('Please enter all 6 digits.');
+      setError("Please enter all 6 digits.");
       return;
     }
-    if (enteredOtp !== generatedOtp) {
-      setError('OTP is incorrect. Please try again.');
-      setOtp(['', '', '', '', '', '']);
+    clearError();
+    try {
+      await verifyPasswordResetOtp(email, enteredOtp);
+      setStep("reset");
+      setError("");
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "OTP verification failed. Please try again.");
+      setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
-      return;
+      console.error("OTP verification error:", err);
     }
-    // Success! Move to reset password step
-    setStep('reset');
-    setError('');
   };
 
-  const handleResend = () => {
-    const newOtp = generateOTP();
-    setGeneratedOtp(newOtp);
-    setOtp(['', '', '', '', '', '']);
-    setTimer(TIMER_SECONDS);
-    setCanResend(false);
-    setError('');
-    inputRefs.current[0]?.focus();
-    console.log(`[Demo] OTP resent to ${contact}: ${newOtp}`);
+  const handleResend = async () => {
+    clearError();
+    try {
+      await requestPasswordResetOtp(email);
+      setOtp(["", "", "", "", "", ""]);
+      setTimer(TIMER_SECONDS);
+      setCanResend(false);
+      setError("");
+      inputRefs.current[0]?.focus();
+      console.log(`OTP resent to ${email}`);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Failed to resend OTP. Please try again.");
+      console.error("OTP resend error:", err);
+    }
   };
 
   const handleChangeContact = () => {
-    setStep('enter');
-    setOtp(['', '', '', '', '', '']);
-    setError('');
+    setStep("enter");
+    setOtp(["", "", "", "", "", ""]);
+    setError("");
   };
 
   const formatTime = (s) => {
-    const mins = String(Math.floor(s / 60)).padStart(2, '0');
-    const secs = String(s % 60).padStart(2, '0');
+    const mins = String(Math.floor(s / 60)).padStart(2, "0");
+    const secs = String(s % 60).padStart(2, "0");
     return `${mins}:${secs}`;
   };
 
-  const maskedContact = useCallback(() => {
-    if (contactType === 'email') {
-      const [user, domain] = contact.split('@');
-      return `${user.slice(0, 2)}***@${domain}`;
-    }
-    const digits = contact.replace(/\D/g, '');
-    return `${digits.slice(0, 4)}****${digits.slice(-2)}`;
-  }, [contact, contactType]);
-
+  const maskedEmail = useCallback(() => {
+    const [user, domain] = email.split("@");
+    return `${user.slice(0, 2)}***@${domain}`;
+  }, [email]);
 
   // --- Step 3: Reset Password ---
-  const handleResetPassword = (e) => {
+  const handleResetPassword = async (e) => {
     e.preventDefault();
     if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError("Password must be at least 6 characters.");
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError("Passwords do not match.");
       return;
     }
-    
-    // Success!
-    setResetSuccess(true);
-    setError('');
-    setTimeout(() => {
-      navigate('/signin');
-    }, 2000);
+    clearError();
+    try {
+      await resetPassword(email, otp.join(""), newPassword);
+      setResetSuccess(true);
+      setError("");
+      setTimeout(() => {
+        navigate("/signin");
+      }, 2000);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Password reset failed. Please try again.");
+      console.error("Password reset error:", err);
+    }
   };
 
   return (
-    <div className="flex-grow w-full px-4 md:px-10 lg:px-16 xl:px-24 mx-auto py-10 bg-bg-light min-h-[80vh] flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 border border-gray-100">
+    <div className="flex-grow w-full px-4 md:px-10 lg:px-16 xl:px-24 mx-auto py-10 bg-bg-light min-h-[80vh] flex items-center justify-center relative">
+      
+      {/* Loading Overlay - only show on 'enter' step to avoid flashes */}
+      {loading && step === "enter" && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-white/40 backdrop-blur-sm">
+          <div className="loader"></div>
+        </div>
+      )}
 
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 border border-gray-100">
         {/* Logo */}
         <div className="flex flex-col items-center text-center mb-6">
-          <Link to="/" className="flex items-center justify-center overflow-hidden h-12 w-[170px] mb-3">
-            <img src="/logo.png" alt="NextKart" className="w-[170px] max-w-none mix-blend-multiply" />
+          <Link
+            to="/"
+            className="flex items-center justify-center overflow-hidden h-12 w-[170px] mb-3"
+          >
+            <img
+              src="/logo.png"
+              alt="NextKart"
+              className="w-[170px] max-w-none mix-blend-multiply"
+            />
           </Link>
         </div>
 
-        {/* --- STEP 1: ENTER CONTACT --- */}
-        {step === 'enter' && (
+        {/* --- STEP 1: ENTER EMAIL --- */}
+        {step === "enter" && (
           <>
-            <h2 className="text-lg font-bold text-text-dark text-center mb-1">Forget Password</h2>
+            <h2 className="text-lg font-bold text-text-dark text-center mb-1">
+              Forget Password
+            </h2>
             <p className="text-xs text-gray-500 text-center mb-6">
-              Enter your email address or mobile number to receive a 6-digit OTP for password reset.
+              Enter your email address to receive a 6-digit OTP for password
+              reset.
             </p>
 
             <form onSubmit={handleRequestOtp} className="space-y-4">
               <div className="relative">
                 <input
-                  type="text"
-                  placeholder="Email address or Mobile Number"
-                  value={contact}
-                  onChange={(e) => { setContact(e.target.value); setError(''); }}
+                  type="email"
+                  placeholder="Email Address"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError("");
+                  }}
                   required
-                  className={`w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:bg-white focus:border-primary-blue focus:ring-1 focus:ring-primary-blue outline-none transition-all text-sm placeholder-gray-400 ${error ? 'border-red-400 bg-red-50' : 'border-transparent'}`}
+                  className={`w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:bg-white focus:border-primary-blue focus:ring-1 focus:ring-primary-blue outline-none transition-all text-sm placeholder-gray-400 ${error ? "border-red-400 bg-red-50" : "border-transparent"}`}
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  {detectContactType(contact) === 'email' ? <Mail size={16} /> : <Phone size={16} />}
+                  <Mail size={16} />
                 </div>
               </div>
 
-              {error && <p className="text-red-500 text-[11px] text-center">{error}</p>}
+              {error && (
+                <p className="text-red-500 text-[11px] text-center">{error}</p>
+              )}
 
               <button
                 type="submit"
@@ -218,7 +251,10 @@ export default function ForgotPasswordPage() {
             </form>
 
             <div className="mt-5 text-center">
-              <button onClick={() => navigate('/signin')} className="text-xs text-gray-500 hover:text-primary-blue flex items-center justify-center gap-1 mx-auto">
+              <button
+                onClick={() => navigate("/signin")}
+                className="text-xs text-gray-500 hover:text-primary-blue flex items-center justify-center gap-1 mx-auto"
+              >
                 <ArrowLeft size={14} /> Back to Login
               </button>
             </div>
@@ -226,18 +262,29 @@ export default function ForgotPasswordPage() {
         )}
 
         {/* --- STEP 2: VERIFY OTP --- */}
-        {step === 'verify' && (
+        {step === "verify" && (
           <>
-            <h2 className="text-lg font-bold text-text-dark text-center mb-1">Verify OTP</h2>
+            <h2 className="text-lg font-bold text-text-dark text-center mb-1">
+              Verify OTP
+            </h2>
             <p className="text-xs text-gray-500 text-center mb-6">
-              Please enter the OTP sent to{' '}
-              <span className="font-semibold text-text-dark">{maskedContact()}</span>.{' '}
-              <button onClick={handleChangeContact} className="text-primary-blue font-semibold hover:underline">
+              Please enter the OTP sent to{" "}
+              <span className="font-semibold text-text-dark">
+                {maskedEmail()}
+              </span>
+              .{" "}
+              <button
+                onClick={handleChangeContact}
+                className="text-primary-blue font-semibold hover:underline"
+              >
                 Change
               </button>
             </p>
 
-            <div className="flex justify-center gap-2.5 mb-5" onPaste={handleOtpPaste}>
+            <div
+              className="flex justify-center gap-2.5 mb-5"
+              onPaste={handleOtpPaste}
+            >
               {otp.map((digit, i) => (
                 <input
                   key={i}
@@ -249,9 +296,11 @@ export default function ForgotPasswordPage() {
                   onChange={(e) => handleOtpChange(i, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(i, e)}
                   className={`w-11 h-12 text-center text-lg font-bold border-2 rounded-lg outline-none transition-all
-                    ${digit
-                      ? 'border-primary-blue bg-blue-50 text-primary-blue'
-                      : 'border-gray-200 bg-gray-50 text-gray-700'}
+                    ${
+                      digit
+                        ? "border-primary-blue bg-blue-50 text-primary-blue"
+                        : "border-gray-200 bg-gray-50 text-gray-700"
+                    }
                     focus:border-primary-blue focus:bg-white focus:ring-2 focus:ring-primary-blue/30`}
                 />
               ))}
@@ -272,22 +321,29 @@ export default function ForgotPasswordPage() {
             </button>
 
             <div className="text-center text-xs text-gray-500">
-              Not received your code?{' '}
+              Not received your code?{" "}
               {canResend ? (
-                <button onClick={handleResend} className="text-[#0A88FF] font-semibold hover:underline">
+                <button
+                  onClick={handleResend}
+                  className="text-[#0A88FF] font-semibold hover:underline"
+                >
                   Resend Code
                 </button>
               ) : (
-                <span className="font-semibold text-[#0A88FF]">{formatTime(timer)}</span>
+                <span className="font-semibold text-[#0A88FF]">
+                  {formatTime(timer)}
+                </span>
               )}
             </div>
           </>
         )}
 
         {/* --- STEP 3: RESET PASSWORD --- */}
-        {step === 'reset' && !resetSuccess && (
+        {step === "reset" && !resetSuccess && (
           <>
-            <h2 className="text-lg font-bold text-text-dark text-center mb-1">Set New Password</h2>
+            <h2 className="text-lg font-bold text-text-dark text-center mb-1">
+              Set New Password
+            </h2>
             <p className="text-xs text-gray-500 text-center mb-6">
               Must be at least 6 characters.
             </p>
@@ -300,7 +356,10 @@ export default function ForgotPasswordPage() {
                   required
                   className="w-full px-4 py-2.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-primary-blue focus:ring-1 focus:ring-primary-blue outline-none transition-all text-sm placeholder-gray-400"
                   value={newPassword}
-                  onChange={(e) => { setNewPassword(e.target.value); setError(''); }}
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    setError("");
+                  }}
                 />
                 <button
                   type="button"
@@ -318,18 +377,27 @@ export default function ForgotPasswordPage() {
                   required
                   className="w-full px-4 py-2.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-primary-blue focus:ring-1 focus:ring-primary-blue outline-none transition-all text-sm placeholder-gray-400"
                   value={confirmPassword}
-                  onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setError("");
+                  }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showConfirmPassword ? (
+                    <EyeOff size={16} />
+                  ) : (
+                    <Eye size={16} />
+                  )}
                 </button>
               </div>
 
-              {error && <p className="text-red-500 text-[11px] text-center">{error}</p>}
+              {error && (
+                <p className="text-red-500 text-[11px] text-center">{error}</p>
+              )}
 
               <button
                 type="submit"
@@ -342,16 +410,19 @@ export default function ForgotPasswordPage() {
         )}
 
         {/* --- SUCCESS STATE --- */}
-        {step === 'reset' && resetSuccess && (
+        {step === "reset" && resetSuccess && (
           <div className="flex flex-col items-center text-center py-6">
             <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4 animate-bounce">
               <CheckCircle2 size={36} className="text-green-500" />
             </div>
-            <h2 className="text-lg font-bold text-text-dark mb-2">Password Reset Successfully!</h2>
-            <p className="text-xs text-gray-500">Redirecting you to the login page...</p>
+            <h2 className="text-lg font-bold text-text-dark mb-2">
+              Password Reset Successfully!
+            </h2>
+            <p className="text-xs text-gray-500">
+              Redirecting you to the login page...
+            </p>
           </div>
         )}
-
       </div>
     </div>
   );

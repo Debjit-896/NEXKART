@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Star } from 'lucide-react';
 
 export default function ProductGridSection({ title, highlightText, products }) {
@@ -20,7 +21,7 @@ export default function ProductGridSection({ title, highlightText, products }) {
       {/* Grid container */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {products.map((product, index) => (
-          <div key={index} className="flex flex-col bg-white group cursor-pointer border border-transparent hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] rounded-lg transition-shadow pb-3">
+          <Link to={`/product/${index + 1}`} key={index} className="flex flex-col bg-white group cursor-pointer border border-transparent hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] rounded-lg transition-shadow pb-3 block">
             
             {/* Image Box */}
             <div className="relative aspect-[4/5] bg-[#F4F5F7] rounded-lg overflow-hidden mb-3">
@@ -60,7 +61,7 @@ export default function ProductGridSection({ title, highlightText, products }) {
                 </p>
               )}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

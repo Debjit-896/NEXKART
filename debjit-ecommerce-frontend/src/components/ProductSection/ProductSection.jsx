@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 export default function ProductSection({ title, highlightText, products }) {
   return (
@@ -21,7 +22,7 @@ export default function ProductSection({ title, highlightText, products }) {
       {/* Product Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {products.map((product) => (
-          <div key={product.id} className="bg-[#F8F9FA] rounded-xl p-4 border border-transparent hover:border-[#0A88FF] hover:bg-blue-50/30 transition-all relative group cursor-pointer">
+          <Link to={`/product/${product.id}`} key={product.id} className="bg-[#F8F9FA] rounded-xl p-4 border border-transparent hover:border-[#0A88FF] hover:bg-blue-50/30 transition-all relative group cursor-pointer block">
             {/* Discount Badge */}
             {product.discount && (
               <div className="absolute top-0 right-0 bg-[#0A88FF] text-white text-[10px] font-bold px-2 py-1.5 rounded-bl-xl rounded-tr-xl z-10 shadow-sm">
@@ -45,7 +46,7 @@ export default function ProductSection({ title, highlightText, products }) {
             {product.save && (
               <p className="text-[11px] text-green-500 font-semibold">Save - ₹{product.save}</p>
             )}
-          </div>
+          </Link>
         ))}
       </div>
     </div>

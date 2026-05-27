@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import useAuthStore from '../store/authStore';
+import { useToast } from '../context/ToastContext';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // At least 6 chars, must contain A-Z, a-z, 0-9, and one of $@#&
@@ -20,13 +22,16 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState({});
+  const { signup, loading, error: storeError, clearError } = useAuthStore();
   const navigate = useNavigate();
+  const { success, error: toastError } = useToast();
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     // Clear error on change
     setErrors(prev => ({ ...prev, [name]: '' }));
+    clearError();
   };
 
   const validate = () => {
@@ -48,16 +53,65 @@ export default function SignUpPage() {
     return newErrors;
   };
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
-    if (!formData.terms) return;
-    // Navigate to OTP verification, pass form data along
-    navigate('/verify-otp', { state: { userData: { fullName: formData.fullName, email: formData.email } } });
+    if (!formData.terms) {
+      setErrors({ terms: 'You must agree to the Terms of Service' });
+      return;
+    }
+
+    // Ensure date is in yyyy-MM-dd format
+    let formattedDob = formData.dob;
+    if (formattedDob) {
+      const parts = formattedDob.split('-');
+      // If the user somehow inputted dd-MM-yyyy
+      if (parts.length === 3 && parts[2].length === 4) {
+        formattedDob = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+    }
+
+    try {
+      await signup({
+        ...formData,
+        dob: formattedDob,
+      });
+      success("SUCCESS!", "Registration successful. Please verify your email.");
+
+      // Navigate to OTP verification with userData
+      navigate('/verify-otp', {
+        state: {
+          userData: {
+            email: formData.email,
+            password: formData.password,
+          },
+        },
+      });
+    } catch (error) {
+      const errorData = error.response?.data;
+      
+      // Check for the updated backend validation format (errorData.data contains field errors)
+      const fieldErrors = errorData?.data;
+      if (fieldErrors && typeof fieldErrors === 'object') {
+        const mappedErrors = {};
+        for (const [key, msg] of Object.entries(fieldErrors)) {
+          // Map backend specific names back to frontend state names if needed
+          if (key === 'dateOfBirth') mappedErrors.dob = msg;
+          else if (key === 'termsAccepted') mappedErrors.terms = msg;
+          else mappedErrors[key] = msg;
+        }
+        setErrors(mappedErrors);
+        toastError("ERROR!", "Please check the form fields for errors.");
+      } else {
+        const errorMsg = errorData?.message || error.message || 'Signup failed. Please try again.';
+        toastError("ERROR!", errorMsg);
+      }
+      console.error('Signup error:', error);
+    }
   };
 
   const inputClass =
@@ -106,27 +160,39 @@ export default function SignUpPage() {
 
             {/* Row 1: Full Name & Contact */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <input type="text" name="fullName" placeholder="Full Name" required
-                className={inputClass}
-                value={formData.fullName} onChange={handleInputChange} />
-              <input type="tel" name="contactNumber" placeholder="Contact Number" required
-                className={inputClass}
-                value={formData.contactNumber} onChange={handleInputChange} />
+              <div>
+                <input type="text" name="fullName" placeholder="Full Name" required
+                  className={`${inputClass} ${errors.fullName ? 'border-red-400 bg-red-50' : ''}`}
+                  value={formData.fullName} onChange={handleInputChange} />
+                {errors.fullName && <p className={errorClass}>{errors.fullName}</p>}
+              </div>
+              <div>
+                <input type="tel" name="contactNumber" placeholder="Contact Number" required
+                  className={`${inputClass} ${errors.contactNumber ? 'border-red-400 bg-red-50' : ''}`}
+                  value={formData.contactNumber} onChange={handleInputChange} />
+                {errors.contactNumber && <p className={errorClass}>{errors.contactNumber}</p>}
+              </div>
             </div>
 
             {/* Row 2: Gender & DOB */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <select name="gender" required
-                className={`${inputClass} text-gray-500`}
-                value={formData.gender} onChange={handleInputChange}>
-                <option value="" disabled>Select Gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-              <input type="date" name="dob" required
-                className={`${inputClass} text-gray-500`}
-                value={formData.dob} onChange={handleInputChange} />
+              <div>
+                <select name="gender" required
+                  className={`${inputClass} text-gray-500 ${errors.gender ? 'border-red-400 bg-red-50' : ''}`}
+                  value={formData.gender} onChange={handleInputChange}>
+                  <option value="" disabled>Select Gender</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
+                </select>
+                {errors.gender && <p className={errorClass}>{errors.gender}</p>}
+              </div>
+              <div>
+                <input type="date" name="dob" required
+                  className={`${inputClass} text-gray-500 ${errors.dob ? 'border-red-400 bg-red-50' : ''}`}
+                  value={formData.dob} onChange={handleInputChange} />
+                {errors.dob && <p className={errorClass}>{errors.dob}</p>}
+              </div>
             </div>
 
             {/* Row 3: Email */}
@@ -182,11 +248,12 @@ export default function SignUpPage() {
                 I agree to the <Link to="#" className="text-primary-blue hover:underline">Terms of Service</Link> &amp; <Link to="#" className="text-primary-blue hover:underline">Privacy Policy</Link>. This is a mandatory requirement to proceed.
               </label>
             </div>
+            {errors.terms && <p className={errorClass}>{errors.terms}</p>}
 
-            <button type="submit"
-              className="w-full py-2.5 bg-[#0A88FF] hover:bg-[#339DFF] text-white font-semibold rounded-xl transition-colors shadow-md mt-2 text-sm"
+            <button type="submit" disabled={loading}
+              className="w-full py-2.5 bg-[#0A88FF] hover:bg-[#339DFF] disabled:bg-gray-400 text-white font-semibold rounded-xl transition-colors shadow-md mt-2 text-sm"
             >
-              Sign Up
+              {loading ? 'Signing Up...' : 'Sign Up'}
             </button>
           </form>
 

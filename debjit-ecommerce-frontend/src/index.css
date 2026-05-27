@@ -60,3 +60,35 @@
   border-radius: 4px;
   background-color: #0A88FF;
 }
+
+/* Button Active State for all buttons */
+button:active {
+  filter: brightness(0.85);
+  transform: scale(0.98);
+  transition: all 0.1s;
+}
+
+/* Global Loader Animation */
+.loader {
+  width: 50px;
+  aspect-ratio: 1;
+  display: grid;
+  animation: l14 4s infinite;
+}
+.loader::before,
+.loader::after {    
+  content: "";
+  grid-area: 1/1;
+  border: 8px solid;
+  border-radius: 50%;
+  border-color: red red #0000 #0000;
+  mix-blend-mode: darken;
+  animation: l14 1s infinite linear;
+}
+.loader::after {
+  border-color: #0000 #0000 blue blue;
+  animation-direction: reverse;
+}
+@keyframes l14{ 
+  100%{transform: rotate(1turn)}
+}
