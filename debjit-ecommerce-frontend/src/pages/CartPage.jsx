@@ -38,24 +38,26 @@ export default function CartPage() {
           {/* Main Content (Left Side) */}
           <div className="w-full lg:w-2/3">
             {currentStep === 1 && (
-              <CartItemList />
+              <div className="animate-step">
+                <CartItemList />
+              </div>
             )}
 
             {currentStep === 2 && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center text-gray-500 py-16">
+              <div className="animate-step bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center text-gray-500 py-16">
                 <h2 className="text-xl font-bold text-gray-800 mb-2">Address Details</h2>
                 <p>Address selection form goes here.</p>
                 <button
                   onClick={() => setCurrentStep(1)}
                   className="mt-4 text-[#0A1172] font-semibold hover:underline"
                 >
-                  &larr; Back to Cart
+                  &larr; Back to Order Summary
                 </button>
               </div>
             )}
 
             {currentStep === 3 && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+              <div className="animate-step bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Payment Options</h2>
 
                 <div className="space-y-4 max-w-sm mx-auto mb-8 text-left">
@@ -84,7 +86,7 @@ export default function CartPage() {
                     onClick={() => setCurrentStep(2)}
                     className="text-gray-500 font-semibold hover:underline text-sm"
                   >
-                    Back to Order Summary
+                    Back to Address
                   </button>
                 </div>
               </div>

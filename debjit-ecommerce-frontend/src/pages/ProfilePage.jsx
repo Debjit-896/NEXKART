@@ -44,6 +44,21 @@ const ProfilePage = () => {
     contact: '',
     email: '',
     location: '',
+    addresses: [],
+  });
+
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const [newAddressForm, setNewAddressForm] = useState({
+    houseNo: '',
+    address1: '',
+    address2: '',
+    city: '',
+    pincode: '',
+    district: '',
+    state: '',
+    locality: '',
+    landmark: '',
+    type: 'HOME'
   });
 
   useEffect(() => {
@@ -59,9 +74,54 @@ const ProfilePage = () => {
         contact: user.contactNumber || '',
         email: user.email || '',
         location: user.location || '',
+        addresses: user.addresses || [],
       });
     }
   }, [user]);
+
+  const handleNewAddressChange = (e) => {
+    const { name, value } = e.target;
+    setNewAddressForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const saveNewAddress = () => {
+    if (!newAddressForm.address1 || !newAddressForm.city || !newAddressForm.pincode || !newAddressForm.state) {
+      alert("Please fill in the mandatory fields (Address line 1, City, Pincode, State).");
+      return;
+    }
+    
+    // Format full address for display
+    const fullAddress = [
+      newAddressForm.houseNo, 
+      newAddressForm.address1, 
+      newAddressForm.address2, 
+      newAddressForm.landmark,
+      newAddressForm.locality, 
+      newAddressForm.city, 
+      newAddressForm.district, 
+      newAddressForm.state, 
+      newAddressForm.pincode
+    ].filter(Boolean).join(', ');
+
+    setFormData(prev => ({
+      ...prev,
+      addresses: [...prev.addresses, { type: newAddressForm.type, address: fullAddress }]
+    }));
+    
+    setIsAddingAddress(false);
+    setNewAddressForm({
+      houseNo: '', address1: '', address2: '', city: '', pincode: '', district: '', state: '', locality: '', landmark: '', type: 'HOME'
+    });
+    success('Address Added', 'Your new address has been added successfully.');
+    // TODO: Add API call here to save to database
+  };
+
+  const removeAddress = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      addresses: prev.addresses.filter((_, i) => i !== index)
+    }));
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -100,7 +160,6 @@ const ProfilePage = () => {
 
   const sidebarLinks = [
     { key: 'profile', icon: <UserIcon size={20} />, label: 'Profile' },
-    { key: 'manage_address', icon: <MapPin size={20} />, label: 'Manage Address' },
     { key: 'orders', icon: <Package size={20} />, label: 'My orders' },
     { key: 'wishlist', icon: <Heart size={20} />, label: 'My wishlist' },
     { key: 'payment', icon: <CreditCard size={20} />, label: 'Payment' },
@@ -208,6 +267,115 @@ const ProfilePage = () => {
         </div>
       </div>
 
+      <div className="flex flex-col gap-1.5 mt-8 max-w-2xl">
+        <label className="text-sm font-semibold text-gray-700">Manage Addresses</label>
+        {formData.addresses.length > 0 ? (
+          <div className="space-y-2.5">
+            {formData.addresses.map((addr, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-3 bg-white flex justify-between items-start shadow-sm">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded">{addr.type || 'HOME'}</span>
+                    <span className="font-semibold text-[13px] text-gray-800">{formData.firstName} {formData.lastName}</span>
+                    <span className="text-[11px] text-gray-500">{formData.contact}</span>
+                  </div>
+                  <p className="text-[13px] text-gray-600 leading-snug">{addr.address}</p>
+                </div>
+                {isEditing && (
+                  <button type="button" onClick={() => removeAddress(index)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-sm text-gray-500 p-4 border border-dashed border-gray-300 rounded-lg bg-gray-50 text-center">
+            No addresses saved yet.
+          </div>
+        )}
+        
+        {isEditing && !isAddingAddress && (
+          <button
+            type="button"
+            onClick={() => setIsAddingAddress(true)}
+            className="mt-2 flex items-center justify-center gap-2 py-2.5 px-4 border-2 border-dashed border-[#0A88FF] rounded-lg text-[#0A88FF] font-medium text-[13px] hover:bg-blue-50/50 transition-colors"
+          >
+            <MapPin size={16} />
+            Add a new address (Add address manually)
+          </button>
+        )}
+
+        <div
+          className="overflow-hidden transition-all duration-500 ease-in-out mt-1"
+          style={{
+            maxHeight: isAddingAddress ? '800px' : '0px',
+            opacity: isAddingAddress ? 1 : 0,
+          }}
+        >
+          <div className="p-4 border border-gray-200 rounded-xl bg-gray-50 mt-2">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Add New Address</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-gray-600">House/Flat Number</label>
+                <input type="text" name="houseNo" value={newAddressForm.houseNo} onChange={handleNewAddressChange} className="w-full px-3 py-1.5 rounded-lg border border-gray-200 outline-none focus:ring-1 focus:ring-[#0A88FF] text-[13px]" placeholder="Optional" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-gray-600">Address line 1 *</label>
+                <input type="text" name="address1" value={newAddressForm.address1} onChange={handleNewAddressChange} className="w-full px-3 py-1.5 rounded-lg border border-gray-200 outline-none focus:ring-1 focus:ring-[#0A88FF] text-[13px]" placeholder="Mandatory" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-gray-600">Address line 2</label>
+                <input type="text" name="address2" value={newAddressForm.address2} onChange={handleNewAddressChange} className="w-full px-3 py-1.5 rounded-lg border border-gray-200 outline-none focus:ring-1 focus:ring-[#0A88FF] text-[13px]" placeholder="Optional" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-gray-600">Landmark</label>
+                <input type="text" name="landmark" value={newAddressForm.landmark} onChange={handleNewAddressChange} className="w-full px-3 py-1.5 rounded-lg border border-gray-200 outline-none focus:ring-1 focus:ring-[#0A88FF] text-[13px]" placeholder="Optional" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-gray-600">Locality / Area</label>
+                <input type="text" name="locality" value={newAddressForm.locality} onChange={handleNewAddressChange} className="w-full px-3 py-1.5 rounded-lg border border-gray-200 outline-none focus:ring-1 focus:ring-[#0A88FF] text-[13px]" placeholder="Locality" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-gray-600">City *</label>
+                <input type="text" name="city" value={newAddressForm.city} onChange={handleNewAddressChange} className="w-full px-3 py-1.5 rounded-lg border border-gray-200 outline-none focus:ring-1 focus:ring-[#0A88FF] text-[13px]" placeholder="City" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-gray-600">Pincode *</label>
+                <input type="text" name="pincode" value={newAddressForm.pincode} onChange={handleNewAddressChange} className="w-full px-3 py-1.5 rounded-lg border border-gray-200 outline-none focus:ring-1 focus:ring-[#0A88FF] text-[13px]" placeholder="Pincode" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-gray-600">District</label>
+                <input type="text" name="district" value={newAddressForm.district} onChange={handleNewAddressChange} className="w-full px-3 py-1.5 rounded-lg border border-gray-200 outline-none focus:ring-1 focus:ring-[#0A88FF] text-[13px]" placeholder="District" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-gray-600">State *</label>
+                <input type="text" name="state" value={newAddressForm.state} onChange={handleNewAddressChange} className="w-full px-3 py-1.5 rounded-lg border border-gray-200 outline-none focus:ring-1 focus:ring-[#0A88FF] text-[13px]" placeholder="State" />
+              </div>
+              <div className="flex flex-col gap-1 sm:col-span-2">
+                <label className="text-[11px] font-semibold text-gray-600">Address Type *</label>
+                <div className="flex gap-3 mt-1">
+                  {['HOME', 'WORK', 'OTHER'].map(type => (
+                    <label key={type} className="flex items-center gap-1.5 cursor-pointer">
+                      <input type="radio" name="type" value={type} checked={newAddressForm.type === type} onChange={handleNewAddressChange} className="accent-[#0A88FF]" />
+                      <span className="text-[13px] text-gray-700">{type}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-gray-200">
+              <button type="button" onClick={() => setIsAddingAddress(false)} className="px-4 py-1.5 rounded-lg text-[13px] font-semibold text-gray-600 hover:bg-gray-200 transition-colors">
+                Cancel
+              </button>
+              <button type="button" onClick={saveNewAddress} className="px-4 py-1.5 rounded-lg text-[13px] font-semibold bg-[#0A88FF] text-white hover:bg-[#339DFF] transition-colors shadow-sm">
+                Save Address
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="mt-12 flex justify-end max-w-2xl">
         <button
           onClick={handleEditToggle}
@@ -226,28 +394,7 @@ const ProfilePage = () => {
     </>
   );
 
-  const renderManageAddress = () => (
-    <>
-      <h1 className="text-2xl font-bold text-text-dark mb-6">Manage Addresses</h1>
-      <div className="border-2 border-dashed border-[#0A88FF] rounded-xl p-5 flex items-center gap-3 cursor-pointer hover:bg-blue-50/40 transition-colors mb-6">
-        <span className="text-[#0A88FF] text-2xl font-light">+</span>
-        <span className="text-[#0A88FF] font-semibold text-sm">ADD A NEW ADDRESS</span>
-      </div>
 
-      <div className="space-y-4">
-        <div className="border border-gray-200 rounded-xl p-5 bg-white">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2.5 py-1 rounded">HOME</span>
-            <span className="font-semibold text-sm text-gray-800">{user?.fullName || 'User'}</span>
-            <span className="text-sm text-gray-500">{formData.contact}</span>
-          </div>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            {formData.location || 'No address saved yet. Click "Add a new address" to get started.'}
-          </p>
-        </div>
-      </div>
-    </>
-  );
 
   const renderOrders = () => {
     const statusColors = {
@@ -498,36 +645,136 @@ const ProfilePage = () => {
     );
   };
 
-  const renderFAQs = () => {
-    const faqs = [
-      { id: 1, question: 'How do I track my order?', answer: 'You can track your order from the "My Orders" section in your profile. Click on any order to see its real-time tracking details.' },
-      { id: 2, question: 'What is the return policy?', answer: 'We offer a 7-day easy return policy on most products. Items must be in their original packaging and unused condition.' },
-      { id: 3, question: 'How can I cancel my order?', answer: 'You can cancel your order from the "My Orders" section before it is shipped. Once shipped, you can initiate a return after delivery.' },
-      { id: 4, question: 'What payment methods are accepted?', answer: 'We accept Credit/Debit cards, UPI, Net Banking, Wallets, and Cash on Delivery (COD) on eligible products.' },
-      { id: 5, question: 'How do I change my delivery address?', answer: 'Go to "Manage Address" in your profile to add, edit, or delete delivery addresses. You can also change the address during checkout.' },
-      { id: 6, question: 'Is my payment information secure?', answer: 'Yes, all transactions are secured with 256-bit SSL encryption. We never store your complete card details on our servers.' },
-    ];
+  const [openFaq, setOpenFaq] = useState(null);
 
-    const [openFaq, setOpenFaq] = useState(null);
+  const renderFAQs = () => {
+    const faqCategories = [
+      {
+        title: '📦 Orders & Delivery',
+        faqs: [
+          {
+            id: 1,
+            question: 'How can I track my order?',
+            answer: 'Once your order is shipped, you will receive a tracking link via email and SMS. You can also track your order by going to "My Orders" in your profile — click on the specific order to view real-time tracking updates including current location and estimated delivery date.',
+          },
+          {
+            id: 2,
+            question: 'Can I change my delivery address after placing an order?',
+            answer: 'You can change your delivery address only if the order has not been shipped yet. Go to "My Orders", select the order, and look for the "Change Address" option. If the order is already shipped, the address cannot be modified. We recommend double-checking your address before confirming your order.',
+          },
+        ],
+      },
+      {
+        title: '💳 Payments & Refunds',
+        faqs: [
+          {
+            id: 3,
+            question: 'What payment methods do you accept?',
+            answer: 'We accept a wide range of payment methods including Credit Cards (Visa, MasterCard, RuPay), Debit Cards, UPI (Google Pay, PhonePe, Paytm), Net Banking, Mobile Wallets, EMI options, and Cash on Delivery (COD) for eligible orders and pin codes.',
+          },
+          {
+            id: 4,
+            question: 'What should I do if my payment fails but money got deducted?',
+            answer: 'Don\'t worry — if the payment fails but money was deducted from your account, the amount will be automatically refunded to your original payment method within 5–7 business days. If you don\'t receive the refund within this period, please contact our customer support with the transaction ID and order details.',
+          },
+          {
+            id: 5,
+            question: 'How long does a refund take to reflect in my account?',
+            answer: 'Refund timelines depend on your payment method:\n• UPI / Wallet: 1–2 business days\n• Credit / Debit Card: 5–7 business days\n• Net Banking: 5–10 business days\n• COD: Refunded to your bank account or wallet within 3–5 business days after providing bank details.',
+          },
+        ],
+      },
+      {
+        title: '🔄 Returns & Cancellations',
+        faqs: [
+          {
+            id: 6,
+            question: 'What is your return and replacement policy?',
+            answer: 'We offer a 7-day easy return/replacement policy on most products from the date of delivery. The item must be unused, undamaged, and in its original packaging with all tags and accessories. Some categories like innerwear, customized products, and perishable goods are not eligible for return.',
+          },
+          {
+            id: 7,
+            question: 'Are there any items that cannot be returned?',
+            answer: 'Yes, the following items are non-returnable:\n• Innerwear, lingerie, and swimwear\n• Customized or personalized products\n• Perishable goods (food, flowers, etc.)\n• Digital downloads and gift cards\n• Products with tampered serial numbers\n• Items marked "Non-Returnable" on the product page.\nPlease check the product page for return eligibility before purchasing.',
+          },
+          {
+            id: 8,
+            question: 'How do I cancel an order?',
+            answer: 'To cancel an order, go to "My Orders" in your profile, select the order you wish to cancel, and click "Cancel Order". You can choose to cancel individual items or the entire order. Once cancelled, the refund will be processed to your original payment method within the standard refund timeline.',
+          },
+          {
+            id: 9,
+            question: 'Can I cancel my order after it has been shipped?',
+            answer: 'Unfortunately, orders cannot be cancelled once they have been shipped. However, you can refuse delivery when it arrives, or accept the delivery and initiate a return from "My Orders" within the return window. The refund will be processed after we receive and verify the returned item.',
+          },
+        ],
+      },
+      {
+        title: '🔐 Account & Security',
+        faqs: [
+          {
+            id: 10,
+            question: 'How do I update my profile name, email, or phone number?',
+            answer: 'Go to "Profile" in your account sidebar and click "Edit Profile". You can update your first name, last name, email, phone number, gender, and location. After making your changes, click "Save Info" to save the updated details. Note: Changing your email or phone may require OTP verification for security purposes.',
+          },
+          {
+            id: 11,
+            question: 'Is it safe to save my card details on this website?',
+            answer: 'Yes, absolutely! We use industry-standard 256-bit SSL encryption and are PCI-DSS compliant. We never store your full card number or CVV on our servers. Your saved card details are tokenized through our secure payment gateway partner, ensuring your financial information remains protected at all times.',
+          },
+          {
+            id: 12,
+            question: 'What should I do if I forget my account password?',
+            answer: 'Click on "Forgot Password" on the sign-in page. Enter your registered email address or phone number, and we will send you an OTP to verify your identity. After verification, you can set a new password. For additional security, we recommend using a strong, unique password and enabling two-factor authentication if available.',
+          },
+        ],
+      },
+    ];
 
     return (
       <>
-        <h1 className="text-2xl font-bold text-text-dark mb-6">Frequently Asked Questions</h1>
-        <div className="space-y-3">
-          {faqs.map((faq) => (
-            <div key={faq.id} className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-              <button
-                onClick={() => setOpenFaq(openFaq === faq.id ? null : faq.id)}
-                className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-sm font-semibold text-gray-800 pr-4">{faq.question}</span>
-                {openFaq === faq.id ? <ChevronUp size={18} className="text-gray-400 flex-shrink-0" /> : <ChevronDown size={18} className="text-gray-400 flex-shrink-0" />}
-              </button>
-              {openFaq === faq.id && (
-                <div className="px-5 pb-4 pt-0">
-                  <p className="text-sm text-gray-600 leading-relaxed">{faq.answer}</p>
-                </div>
-              )}
+        <h1 className="text-2xl font-bold text-text-dark mb-2">Frequently Asked Questions</h1>
+        <p className="text-sm text-gray-500 mb-8">Find answers to common questions about orders, payments, returns, and more.</p>
+        <div className="space-y-8">
+          {faqCategories.map((category) => (
+            <div key={category.title}>
+              <h2 className="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">{category.title}</h2>
+              <div className="space-y-2.5">
+                {category.faqs.map((faq) => (
+                  <div key={faq.id} className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                    <button
+                      onClick={() => setOpenFaq(openFaq === faq.id ? null : faq.id)}
+                      className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50/80 transition-colors"
+                    >
+                      <span className="text-[13px] font-semibold text-gray-800 pr-4 leading-snug">{faq.question}</span>
+                      <span
+                        className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+                        style={{ backgroundColor: openFaq === faq.id ? '#0A88FF' : '#F3F4F6' }}
+                      >
+                        {openFaq === faq.id
+                          ? <ChevronUp size={16} className="text-white" />
+                          : <ChevronDown size={16} className="text-gray-500" />
+                        }
+                      </span>
+                    </button>
+                    <div
+                      className="overflow-hidden transition-all duration-400 ease-in-out"
+                      style={{
+                        maxHeight: openFaq === faq.id ? '500px' : '0px',
+                        opacity: openFaq === faq.id ? 1 : 0,
+                      }}
+                    >
+                      <div className="px-5 pb-4 pt-0">
+                        <div className="border-t border-gray-100 pt-3">
+                          {faq.answer.split('\n').map((line, i) => (
+                            <p key={i} className="text-[13px] text-gray-600 leading-relaxed">{line}</p>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
@@ -541,8 +788,6 @@ const ProfilePage = () => {
     switch (activeSection) {
       case 'profile':
         return renderProfile();
-      case 'manage_address':
-        return renderManageAddress();
       case 'orders':
         return renderOrders();
       case 'wishlist':
@@ -562,7 +807,7 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-bg-light py-10 px-4 md:px-10 lg:px-16 xl:px-24">
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row bg-white rounded-3xl shadow-lg overflow-hidden border border-gray-100 min-h-[700px]">
+      <div className="max-w-6xl mx-auto flex flex-col md:flex-row bg-white rounded-3xl shadow-lg overflow-hidden border border-gray-100 h-[700px]">
         {/* Left Sidebar */}
         <div className="w-full md:w-1/3 lg:w-[320px] bg-[#0A88FF] text-white p-8 flex flex-col flex-shrink-0">
           <div className="flex flex-col items-center mb-10 mt-4">

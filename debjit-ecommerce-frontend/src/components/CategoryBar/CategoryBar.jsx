@@ -1,26 +1,24 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 const categories = [
-  { id: 'groceries', label: 'Groceries' },
-  { id: 'premium-fruits', label: 'Premium Fruits' },
-  { id: 'home-kitchen', label: 'Home & Kitchen' },
   { id: 'fashion', label: 'Fashion' },
-  { id: 'electronics', label: 'Electronics' },
+  { id: 'mobiles', label: 'Mobiles' },
   { id: 'beauty', label: 'Beauty' },
-  { id: 'home-improvement', label: 'Home Improvement' },
-  { id: 'sports-toys', label: 'Sports, Toys & Luggage' },
-  { id: 'health-wellness', label: 'Health & Wellness' },
-  { id: 'automotive', label: 'Automotive & Accessories' },
+  { id: 'electronics', label: 'Electronics' },
+  { id: 'home', label: 'Home' },
+  { id: 'appliances', label: 'Appliances' },
+  { id: 'toys-baby-kids', label: 'Toys, Baby & Kids' },
+  { id: 'food-health', label: 'Food & Health' },
+  { id: 'auto-accessories', label: 'Auto Accessories' },
+  { id: 'sports-fitness', label: 'Sports & Fitness' },
   { id: 'books-stationery', label: 'Books & Stationery' },
-  { id: 'pet-supplies', label: 'Pet Supplies' },
-  { id: 'baby-care', label: 'Baby Care' },
-  { id: 'office-supplies', label: 'Office Supplies' },
-  { id: 'pharmacy', label: 'Pharmacy & Medical' },
-  { id: 'gifts-festive', label: 'Gifts & Festive Decor' }
+  { id: 'furniture', label: 'Furniture' }
 ];
 
 export default function CategoryBar() {
+  const navigate = useNavigate();
   const scrollContainerRef = useRef(null);
   const [activeCategory, setActiveCategory] = useState('groceries');
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -79,7 +77,13 @@ export default function CategoryBar() {
               return (
                 <button
                   key={category.id}
-                  onClick={() => setActiveCategory(category.id)}
+                  onClick={() => {
+                    setActiveCategory(category.id);
+                    const routableCategories = ['fashion', 'mobiles', 'beauty', 'electronics', 'home', 'appliances', 'toys-baby-kids', 'food-health', 'auto-accessories', 'sports-fitness', 'books-stationery', 'furniture'];
+                    if (routableCategories.includes(category.id)) {
+                      navigate(`/${category.id}`);
+                    }
+                  }}
                   className={`flex items-center gap-1 px-4 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors flex-shrink-0 ${isActive
                     ? 'bg-[#0A88FF] text-white shadow-md'
                     : 'bg-bg-light text-gray-700 hover:bg-blue-50 hover:text-primary-blue'
